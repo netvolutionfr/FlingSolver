@@ -1,7 +1,7 @@
 # Fling Solver
 ## Description
 
-This is a solver for the game [Fling](https://play.google.com/store/apps/details?id=com.candycaneapps.flingsolve&hl=en_US&gl=US). It is written in Python 3.
+This is a solver for the game [Fling!](https://apps.apple.com/fr/app/fling/id325815008). It is written in Python 3.
 
 ## Usage
 
@@ -119,5 +119,5 @@ This project is licensed under the Creative Commons Attribution-NonCommercial-Sh
 
 ## Acknowledgments
 
-- The game [Fling](https://play.google.com/store/apps/details?id=com.candycaneapps.flingsolve&hl=en_US&gl=US) was created by [CandyCane LLC](https://candycaneapps.com/)
+- The game [Fling!](https://apps.apple.com/fr/app/fling/id325815008) was created by [Bevin Software OU](https://apps.apple.com/fr/developer/bevin-software-ou/id1053409328)
 
