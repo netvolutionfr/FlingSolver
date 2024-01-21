@@ -121,3 +121,6 @@ This project is licensed under the Creative Commons Attribution-NonCommercial-Sh
 
 - The game [Fling!](https://apps.apple.com/fr/app/fling/id325815008) was created by [Bevin Software OU](https://apps.apple.com/fr/developer/bevin-software-ou/id1053409328)
 
+## Other projects
+
+[A JavaScript Fling! Solver](http://littlefamily.us:8080/fling/solver.html)
