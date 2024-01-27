@@ -1,7 +1,17 @@
+from configparser import ConfigParser
+
+# constants
+
 class Board():
     """ Représentation du tableau du jeu Fling """
     def __init__(self, lines = 8, columns = 7):
         """ Constructeur de la classe Tableau """
+        constants = ConfigParser()
+        constants.read("constants.ini")
+        self.EMPTY = constants.getint("Board", "EMPTY")
+        self.BALL = constants.getint("Board", "BALL")
+        self.WALL = constants.getint("Board", "WALL")
+
         self.lines = lines
         self.columns = columns
         self.board = [[0 for i in range(columns)] for j in range(lines)]
@@ -11,10 +21,13 @@ class Board():
         my_string = ""
         for i in range(self.lines):
             for j in range(self.columns):
-                if self.board[i][j] == 0:
-                    my_string += ". "
-                else:
-                    my_string += "O "
+                match self.board[i][j]:
+                    case self.EMPTY:
+                        my_string += ". "
+                    case self.BALL:
+                        my_string += "O "
+                    case self.WALL:
+                        my_string += "W "
             my_string += "\n"
         return my_string
 
@@ -22,23 +35,21 @@ class Board():
         """ Retourne l'identifiant du tableau """
         """ C'est un nombre binaire formé par la concaténation des lignes """
         """ du tableau """
-        id = 0
+        id = ""
         for i in range(self.lines):
             for j in range(self.columns):
-                id = id << 1
-                id += self.board[i][j]
+                id += str(self.board[i][j])
         return id
 
     def set_id(self, id):
         """ Initialise le tableau à partir de son identifiant """
         """ On transforme le nombre en binaire et on place les 1 comme billes dans le tableau """
         id_tmp = id
-        for i in range(self.lines - 1, -1, -1):
-            for j in range(self.columns - 1, -1, -1):
-                self.board[i][j] = id_tmp % 2
-                id_tmp = id_tmp >> 1
+        for i in range(self.lines):
+            for j in range(self.columns):
+                self.board[i][j] = id_tmp[i*self.columns + j]
 
-    def all_ball(self, x, y):
+    def add_ball(self, x, y):
         """ Ajoute une bille dans le tableau """
         self.board[y - 1][x - 1] = 1
 
@@ -55,29 +66,45 @@ class Board():
                 for j in range(self.columns - len(line)):
                     line += "0"
                 for j in range(self.columns):
-                    if line[j] == "O":
-                        self.board[i][j] = 0
-                    elif line[j] == "1":
-                        self.board[i][j] = 1
+                    match line[j]:
+                        case "0":
+                            self.board[i][j] = self.EMPTY
+                        case "1":
+                            self.board[i][j] = self.BALL
+                        case "W":
+                            self.board[i][j] = self.WALL
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
         nb_balls = 0
         for i in range(self.lines):
             for j in range(self.columns):
-                if self.board[i][j] == 1:
+                if self.board[i][j] == self.BALL:
                     nb_balls += 1
         return nb_balls
 
-    def is_ball(self, x, y):
-        """ Vérifie si une bille est présente à la position x, y """
+    def is_in_board(self, x, y):
+        """ Vérifie si la position x, y est dans le tableau """
         if x < 1 or x > self.columns:
             return False
         if y < 1 or y > self.lines:
             return False
-        if self.board[y - 1][x - 1] == 1:
+        return True
+
+    def is_ball(self, x, y):
+        """ Vérifie si une bille est présente à la position x, y """
+        if self.is_in_board(x, y) and self.board[y - 1][x - 1] == self.BALL:
             return True
         return False
+
+    def is_wall(self, x, y):
+        """ Vérifie si un mur est présent à la position x, y """
+        if self.is_in_board(x, y) and self.board[y - 1][x - 1] == self.WALL:
+            return True
+        return False
+            
+    def is_obstacle(self, x, y):
+        return self.is_ball(x, y) or self.is_wall(x, y)
 
     def can_be_thrown(self, x, y, direction=""):
         """ Vérifie si la bille peut être lancée """
@@ -88,65 +115,69 @@ class Board():
             return False
         if direction == "up":
             if y > 2:
-                if self.is_ball(x, y - 1):
+                if self.is_obstacle(x, y - 1):
                     return False
                 for i in range(2, y):
-                    if self.is_ball(x, y - i):
+                    if self.is_obstacle(x, y - i):
                         return True
 
         elif direction == "down":
             if y < self.lines - 1:
-                if self.is_ball(x, y + 1):
+                if self.is_obstacle(x, y + 1):
                     return False
                 for i in range(2, self.lines - y + 1):
-                    if self.is_ball(x, y + i):
+                    if self.is_obstacle(x, y + i):
                         return True
 
         elif direction == "left":
             if x > 2:
-                if self.is_ball(x - 1, y):
+                if self.is_obstacle(x - 1, y):
                     return False
                 for i in range(2, x):
-                    if self.is_ball(x - i, y):
+                    if self.is_obstacle(x - i, y):
                         return True
 
         elif direction == "right":
             if x < self.columns - 1:
-                if self.is_ball(x + 1, y):
+                if self.is_obstacle(x + 1, y):
                     return False
                 for i in range(2, self.columns - x + 1):
-                    if self.is_ball(x + i, y):
+                    if self.is_obstacle(x + i, y):
                         return True
         return False
 
     def can_exit(self, x, y, direction=""):
         """ Vérifie si la bille peut sortir du tableau """
+        if not self.is_ball(x, y):
+            return False
         if direction == "up":
             for i in range(1, y):
-                if self.is_ball(x, i):
+                if self.is_obstacle(x, i):
                     return False
         elif direction == "down":
             for i in range(y+1, self.lines + 1):
-                if self.is_ball(x, i):
+                if self.is_obstacle(x, i):
                     return False
         elif direction == "left":
             for i in range(1, x):
-                if self.is_ball(i, y):
+                if self.is_obstacle(i, y):
                     return False
         elif direction == "right":
             for i in range(x+1, self.columns + 1):
-                if self.is_ball(i, y):
+                if self.is_obstacle(i, y):
                     return False
         return True
 
     def move(self, x, y, direction=""):
         """ Déplace la bille dans la direction donnée """
+        if not self.is_ball(x, y):
+            return
         if direction == "up":
             i = 1
-            while not self.is_ball(x, y - i):
+            while not self.is_obstacle(x, y - i):
                 i += 1
             self.delete_ball(x, y)
-            self.all_ball(x, y - i + 1)
+            self.add_ball(x, y - i + 1)
             if self.can_exit(x, y-i, direction):
                 self.delete_ball(x, y - i)
             else:
@@ -154,10 +185,10 @@ class Board():
 
         elif direction == "down":
             i = 1
-            while not self.is_ball(x, y + i):
+            while not self.is_obstacle(x, y + i):
                 i += 1
             self.delete_ball(x, y)
-            self.all_ball(x, y + i - 1)
+            self.add_ball(x, y + i - 1)
             if self.can_exit(x, y+i, direction):
                 self.delete_ball(x, y + i)
             else:
@@ -165,10 +196,10 @@ class Board():
 
         elif direction == "left":
             i = 1
-            while not self.is_ball(x - i, y):
+            while not self.is_obstacle(x - i, y):
                 i += 1
             self.delete_ball(x, y)
-            self.all_ball(x - i + 1, y)
+            self.add_ball(x - i + 1, y)
             if self.can_exit(x-i, y, direction):
                 self.delete_ball(x - i, y)
             else:
@@ -176,10 +207,10 @@ class Board():
 
         elif direction == "right":
             i = 1
-            while not self.is_ball(x + i, y):
+            while not self.is_obstacle(x + i, y):
                 i += 1
             self.delete_ball(x, y)
-            self.all_ball(x + i - 1, y)
+            self.add_ball(x + i - 1, y)
             if self.can_exit(x+i, y, direction):
                 self.delete_ball(x + i, y)
             else:

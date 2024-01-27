@@ -11,6 +11,7 @@ if __name__ == '__main__':
     tab = Board()
     tab.load_from_file("puzzle.txt")
     print(f'Nombre de billes : {tab.count_balls()}')
+    print(tab)
     graph = resolve(tab)
     time_end = time.time()
     print("Temps d'exécution : " + str(time_end - time_start) + " secondes")
