@@ -11,6 +11,8 @@ class Board():
         self.EMPTY = constants.getint("Board", "EMPTY")
         self.BALL = constants.getint("Board", "BALL")
         self.WALL = constants.getint("Board", "WALL")
+        self.BABYBALL = constants.getint("Board", "BABYBALL")
+        self.BIGBALL = constants.getint("Board", "BIGBALL")
 
         self.lines = lines
         self.columns = columns
@@ -21,13 +23,17 @@ class Board():
         my_string = ""
         for i in range(self.lines):
             for j in range(self.columns):
-                match self.board[i][j]:
+                match int(self.board[i][j]):
                     case self.EMPTY:
                         my_string += ". "
                     case self.BALL:
                         my_string += "O "
                     case self.WALL:
                         my_string += "W "
+                    case self.BABYBALL:
+                        my_string += "o "
+                    case self.BIGBALL:
+                        my_string += "B "
             my_string += "\n"
         return my_string
 
@@ -49,13 +55,21 @@ class Board():
             for j in range(self.columns):
                 self.board[i][j] = id_tmp[i*self.columns + j]
 
-    def add_ball(self, x, y):
+    def add_ball(self, x, y, type = None):
+        type_n = type
+        if type is None:
+            type_n = self.BALL
+
         """ Ajoute une bille dans le tableau """
-        self.board[y - 1][x - 1] = 1
+        self.board[y - 1][x - 1] = type_n
 
     def delete_ball(self, x, y):
         """ Supprime une bille du tableau """
         self.board[y - 1][x - 1] = 0
+
+    def get_element(self, x, y):
+        """ Retourne l'élément du tableau à la position x, y """
+        return self.board[y - 1][x - 1]
 
     def load_from_file(self, filename):
         """ Charge un tableau à partir d'un fichier """
@@ -73,13 +87,17 @@ class Board():
                             self.board[i][j] = self.BALL
                         case "W":
                             self.board[i][j] = self.WALL
+                        case "b":
+                            self.board[i][j] = self.BABYBALL
+                        case "B":
+                            self.board[i][j] = self.BIGBALL
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
         nb_balls = 0
         for i in range(self.lines):
             for j in range(self.columns):
-                if self.board[i][j] == self.BALL:
+                if self.board[i][j] == self.BALL or self.board[i][j] == self.BABYBALL or self.board[i][j] == self.BIGBALL:
                     nb_balls += 1
         return nb_balls
 
@@ -93,13 +111,16 @@ class Board():
 
     def is_ball(self, x, y):
         """ Vérifie si une bille est présente à la position x, y """
-        if self.is_in_board(x, y) and self.board[y - 1][x - 1] == self.BALL:
+        if (self.is_in_board(x, y) and
+                (self.get_element(x, y) == self.BALL
+                or self.get_element(x, y) == self.BABYBALL
+                or self.get_element(x, y) == self.BIGBALL)):
             return True
         return False
 
     def is_wall(self, x, y):
         """ Vérifie si un mur est présent à la position x, y """
-        if self.is_in_board(x, y) and self.board[y - 1][x - 1] == self.WALL:
+        if self.is_in_board(x, y) and self.get_element(x, y) == self.WALL:
             return True
         return False
             
@@ -111,7 +132,7 @@ class Board():
         """ c'est à dire si il y a pas une bille dans la direction """
         """ a au moins 2 cases de distance """
         """ et qu'elle ne sortira pas du tableau """
-        if not self.is_ball(x, y):
+        if (not self.is_ball(x, y)) or self.get_element(x, y) == self.BABYBALL:
             return False
         if direction == "up":
             if y > 2:
@@ -169,6 +190,7 @@ class Board():
         return True
 
     def move(self, x, y, direction=""):
+        ball = self.get_element(x, y)
         """ Déplace la bille dans la direction donnée """
         if not self.is_ball(x, y):
             return
@@ -177,44 +199,48 @@ class Board():
             while not self.is_obstacle(x, y - i):
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x, y - i + 1)
-            if self.can_exit(x, y-i, direction):
-                self.delete_ball(x, y - i)
-            else:
-                self.move(x, y-i, direction)
+            self.add_ball(x, y - i + 1, ball)
+            if self.is_ball(x, y - i) and self.get_element(x, y - i + 1) >= self.get_element(x, y - i):
+                if self.can_exit(x, y - i, direction):
+                    self.delete_ball(x, y - i)
+                else:
+                    self.move(x, y - i, direction)
 
         elif direction == "down":
             i = 1
             while not self.is_obstacle(x, y + i):
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x, y + i - 1)
-            if self.can_exit(x, y+i, direction):
-                self.delete_ball(x, y + i)
-            else:
-                self.move(x, y+i, direction)
+            self.add_ball(x, y + i - 1, ball)
+            if self.is_ball(x, y + i) and self.get_element(x, y + i - 1) >= self.get_element(x, y + i):
+                if self.can_exit(x, y + i, direction):
+                    self.delete_ball(x, y + i)
+                else:
+                    self.move(x, y + i, direction)
 
         elif direction == "left":
             i = 1
             while not self.is_obstacle(x - i, y):
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x - i + 1, y)
-            if self.can_exit(x-i, y, direction):
-                self.delete_ball(x - i, y)
-            else:
-                self.move(x-i, y, direction)
+            self.add_ball(x - i + 1, y, ball)
+            if self.is_ball(x - i, y) and self.get_element(x - i + 1, y) >= self.get_element(x - i, y):
+                if self.can_exit(x-i, y, direction):
+                    self.delete_ball(x - i, y)
+                else:
+                    self.move(x-i, y, direction)
 
         elif direction == "right":
             i = 1
             while not self.is_obstacle(x + i, y):
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x + i - 1, y)
-            if self.can_exit(x+i, y, direction):
-                self.delete_ball(x + i, y)
-            else:
-                self.move(x+i, y, direction)
+            self.add_ball(x + i - 1, y, ball)
+            if self.is_ball(x + i, y) and self.get_element(x + i - 1, y) >= self.get_element(x + i, y):
+                if self.can_exit(x+i, y, direction):
+                    self.delete_ball(x + i, y)
+                else:
+                    self.move(x+i, y, direction)
 
     def possible_moves(self):
         """ Construit le nombre de mouvements possibles """
