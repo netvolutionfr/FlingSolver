@@ -15,6 +15,8 @@ class Board():
         self.BIGBALL = constants.getint("Board", "BIGBALL")
         self.FROZEN = constants.getint("Board", "FROZEN")
         self.DOUBLEFROZEN = constants.getint("Board", "DOUBLEFROZEN")
+        self.HOLE = constants.getint("Board", "HOLE")
+        self.BROKEN = constants.getint("Board", "BROKEN")
 
         self.lines = lines
         self.columns = columns
@@ -40,6 +42,10 @@ class Board():
                         my_string += "f "
                     case self.DOUBLEFROZEN:
                         my_string += "F "
+                    case self.HOLE:
+                        my_string += "X "
+                    case self.BROKEN:
+                        my_string += "x "
             my_string += "\n"
         return my_string
 
@@ -101,6 +107,10 @@ class Board():
                             self.board[i][j] = self.FROZEN
                         case "F":
                             self.board[i][j] = self.DOUBLEFROZEN
+                        case "X":
+                            self.board[i][j] = self.HOLE
+                        case "x":
+                            self.board[i][j] = self.BROKEN
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
@@ -162,7 +172,11 @@ class Board():
             if y > 2:
                 if self.is_obstacle(x, y - 1):
                     return False
+                if self.get_element(x, y - 1) == self.HOLE:
+                    return False
                 for i in range(2, y):
+                    if self.get_element(x, y - i) == self.HOLE:
+                        return False
                     if self.is_obstacle(x, y - i):
                         return True
 
@@ -170,7 +184,11 @@ class Board():
             if y < self.lines - 1:
                 if self.is_obstacle(x, y + 1):
                     return False
+                if self.get_element(x, y + 1) == self.HOLE:
+                    return False
                 for i in range(2, self.lines - y + 1):
+                    if self.get_element(x, y + i) == self.HOLE:
+                        return False
                     if self.is_obstacle(x, y + i):
                         return True
 
@@ -178,7 +196,11 @@ class Board():
             if x > 2:
                 if self.is_obstacle(x - 1, y):
                     return False
+                if self.get_element(x - 1, y) == self.HOLE:
+                    return False
                 for i in range(2, x):
+                    if self.get_element(x - i, y) == self.HOLE:
+                        return False
                     if self.is_obstacle(x - i, y):
                         return True
 
@@ -186,7 +208,11 @@ class Board():
             if x < self.columns - 1:
                 if self.is_obstacle(x + 1, y):
                     return False
+                if self.get_element(x + 1, y) == self.HOLE:
+                    return False
                 for i in range(2, self.columns - x + 1):
+                    if self.get_element(x + i, y) == self.HOLE:
+                        return False
                     if self.is_obstacle(x + i, y):
                         return True
         return False
@@ -197,18 +223,26 @@ class Board():
             return False
         if direction == "up":
             for i in range(1, y):
+                if self.get_element(x, i) == self.HOLE:
+                    return True
                 if self.is_obstacle(x, i):
                     return False
         elif direction == "down":
             for i in range(y+1, self.lines + 1):
+                if self.get_element(x, i) == self.HOLE:
+                    return True
                 if self.is_obstacle(x, i):
                     return False
         elif direction == "left":
             for i in range(1, x):
+                if self.get_element(i, y) == self.HOLE:
+                    return True
                 if self.is_obstacle(i, y):
                     return False
         elif direction == "right":
             for i in range(x+1, self.columns + 1):
+                if self.get_element(i, y) == self.HOLE:
+                    return True
                 if self.is_obstacle(i, y):
                     return False
         return True
