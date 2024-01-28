@@ -10,13 +10,14 @@ class Board():
         constants.read("constants.ini")
         self.EMPTY = constants.getint("Board", "EMPTY")
         self.BALL = constants.getint("Board", "BALL")
-        self.WALL = constants.getint("Board", "WALL")
         self.BABYBALL = constants.getint("Board", "BABYBALL")
         self.BIGBALL = constants.getint("Board", "BIGBALL")
         self.FROZEN = constants.getint("Board", "FROZEN")
         self.DOUBLEFROZEN = constants.getint("Board", "DOUBLEFROZEN")
         self.HOLE = constants.getint("Board", "HOLE")
         self.BROKEN = constants.getint("Board", "BROKEN")
+        self.WALL = constants.getint("Board", "WALL")
+        self.BREAKABLE = constants.getint("Board", "BREAKABLE")
 
         self.lines = lines
         self.columns = columns
@@ -34,6 +35,8 @@ class Board():
                         my_string += "O "
                     case self.WALL:
                         my_string += "W "
+                    case self.BREAKABLE:
+                        my_string += "w "
                     case self.BABYBALL:
                         my_string += "o "
                     case self.BIGBALL:
@@ -83,6 +86,12 @@ class Board():
         """ Retourne l'élément du tableau à la position x, y """
         return self.board[y - 1][x - 1]
 
+    def set_element(self, x, y, element=None):
+        """ Initialise l'élément du tableau à la position x, y """
+        if element is None:
+            element = self.EMPTY
+        self.board[y - 1][x - 1] = element
+
     def load_from_file(self, filename):
         """ Charge un tableau à partir d'un fichier """
         with open(filename, "r") as file:
@@ -99,6 +108,8 @@ class Board():
                             self.board[i][j] = self.BALL
                         case "W":
                             self.board[i][j] = self.WALL
+                        case "w":
+                            self.board[i][j] = self.BREAKABLE
                         case "b":
                             self.board[i][j] = self.BABYBALL
                         case "B":
@@ -159,7 +170,7 @@ class Board():
                 self.board[y - 1][x - 1] = self.FROZEN
 
     def is_obstacle(self, x, y):
-        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y)
+        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLE
 
     def can_be_thrown(self, x, y, direction=""):
         """ Vérifie si la bille peut être lancée """
@@ -260,6 +271,8 @@ class Board():
             self.add_ball(x, y - i + 1, ball)
             if self.is_frozen(x, y - i):
                 self.unfreeze(x, y - i)
+            elif self.get_element(x, y - i) == self.BREAKABLE:
+                self.set_element(x, y - i, self.BROKEN)
             else:
                 if self.is_ball(x, y - i) and self.get_element(x, y - i + 1) >= self.get_element(x, y - i):
                     if self.can_exit(x, y - i, direction):
@@ -275,6 +288,8 @@ class Board():
             self.add_ball(x, y + i - 1, ball)
             if self.is_frozen(x, y + i):
                 self.unfreeze(x, y + i)
+            elif self.get_element(x, y + i) == self.BREAKABLE:
+                self.set_element(x, y + i, self.BROKEN)
             else:
                 if self.is_ball(x, y + i) and self.get_element(x, y + i - 1) >= self.get_element(x, y + i):
                     if self.can_exit(x, y + i, direction):
@@ -290,6 +305,8 @@ class Board():
             self.add_ball(x - i + 1, y, ball)
             if self.is_frozen(x - i, y):
                 self.unfreeze(x - i, y)
+            elif self.get_element(x - i, y) == self.BREAKABLE:
+                self.set_element(x - i, y, self.BROKEN)
             else:
                 if self.is_ball(x - i, y) and self.get_element(x - i + 1, y) >= self.get_element(x - i, y):
                     if self.can_exit(x-i, y, direction):
@@ -305,6 +322,8 @@ class Board():
             self.add_ball(x + i - 1, y, ball)
             if self.is_frozen(x + i, y):
                 self.unfreeze(x + i, y)
+            elif self.get_element(x + i, y) == self.BREAKABLE:
+                self.set_element(x + i, y, self.BROKEN)
             else:
                 if self.is_ball(x + i, y) and self.get_element(x + i - 1, y) >= self.get_element(x + i, y):
                     if self.can_exit(x+i, y, direction):
