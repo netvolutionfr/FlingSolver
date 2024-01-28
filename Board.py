@@ -13,6 +13,8 @@ class Board():
         self.WALL = constants.getint("Board", "WALL")
         self.BABYBALL = constants.getint("Board", "BABYBALL")
         self.BIGBALL = constants.getint("Board", "BIGBALL")
+        self.FROZEN = constants.getint("Board", "FROZEN")
+        self.DOUBLEFROZEN = constants.getint("Board", "DOUBLEFROZEN")
 
         self.lines = lines
         self.columns = columns
@@ -34,6 +36,10 @@ class Board():
                         my_string += "o "
                     case self.BIGBALL:
                         my_string += "B "
+                    case self.FROZEN:
+                        my_string += "f "
+                    case self.DOUBLEFROZEN:
+                        my_string += "F "
             my_string += "\n"
         return my_string
 
@@ -91,13 +97,17 @@ class Board():
                             self.board[i][j] = self.BABYBALL
                         case "B":
                             self.board[i][j] = self.BIGBALL
+                        case "f":
+                            self.board[i][j] = self.FROZEN
+                        case "F":
+                            self.board[i][j] = self.DOUBLEFROZEN
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
         nb_balls = 0
         for i in range(self.lines):
             for j in range(self.columns):
-                if self.board[i][j] == self.BALL or self.board[i][j] == self.BABYBALL or self.board[i][j] == self.BIGBALL:
+                if self.board[i][j] == self.BALL or self.board[i][j] == self.BABYBALL or self.board[i][j] == self.BIGBALL or self.board[i][j] == self.FROZEN or self.board[i][j] == self.DOUBLEFROZEN:
                     nb_balls += 1
         return nb_balls
 
@@ -123,9 +133,23 @@ class Board():
         if self.is_in_board(x, y) and self.get_element(x, y) == self.WALL:
             return True
         return False
-            
+
+    def is_frozen(self, x, y):
+        """ Vérifie si une bille est gelée à la position x, y """
+        if self.is_in_board(x, y) and (self.get_element(x, y) == self.FROZEN or self.get_element(x, y) == self.DOUBLEFROZEN):
+            return True
+        return False
+
+    def unfreeze(self, x, y):
+        """ Décongèle une bille à la position x, y """
+        if self.is_frozen(x, y):
+            if self.get_element(x, y) == self.FROZEN:
+                self.board[y - 1][x - 1] = self.BALL
+            elif self.get_element(x, y) == self.DOUBLEFROZEN:
+                self.board[y - 1][x - 1] = self.FROZEN
+
     def is_obstacle(self, x, y):
-        return self.is_ball(x, y) or self.is_wall(x, y)
+        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y)
 
     def can_be_thrown(self, x, y, direction=""):
         """ Vérifie si la bille peut être lancée """
@@ -200,11 +224,14 @@ class Board():
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x, y - i + 1, ball)
-            if self.is_ball(x, y - i) and self.get_element(x, y - i + 1) >= self.get_element(x, y - i):
-                if self.can_exit(x, y - i, direction):
-                    self.delete_ball(x, y - i)
-                else:
-                    self.move(x, y - i, direction)
+            if self.is_frozen(x, y - i):
+                self.unfreeze(x, y - i)
+            else:
+                if self.is_ball(x, y - i) and self.get_element(x, y - i + 1) >= self.get_element(x, y - i):
+                    if self.can_exit(x, y - i, direction):
+                        self.delete_ball(x, y - i)
+                    else:
+                        self.move(x, y - i, direction)
 
         elif direction == "down":
             i = 1
@@ -212,11 +239,14 @@ class Board():
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x, y + i - 1, ball)
-            if self.is_ball(x, y + i) and self.get_element(x, y + i - 1) >= self.get_element(x, y + i):
-                if self.can_exit(x, y + i, direction):
-                    self.delete_ball(x, y + i)
-                else:
-                    self.move(x, y + i, direction)
+            if self.is_frozen(x, y + i):
+                self.unfreeze(x, y + i)
+            else:
+                if self.is_ball(x, y + i) and self.get_element(x, y + i - 1) >= self.get_element(x, y + i):
+                    if self.can_exit(x, y + i, direction):
+                        self.delete_ball(x, y + i)
+                    else:
+                        self.move(x, y + i, direction)
 
         elif direction == "left":
             i = 1
@@ -224,11 +254,14 @@ class Board():
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x - i + 1, y, ball)
-            if self.is_ball(x - i, y) and self.get_element(x - i + 1, y) >= self.get_element(x - i, y):
-                if self.can_exit(x-i, y, direction):
-                    self.delete_ball(x - i, y)
-                else:
-                    self.move(x-i, y, direction)
+            if self.is_frozen(x - i, y):
+                self.unfreeze(x - i, y)
+            else:
+                if self.is_ball(x - i, y) and self.get_element(x - i + 1, y) >= self.get_element(x - i, y):
+                    if self.can_exit(x-i, y, direction):
+                        self.delete_ball(x - i, y)
+                    else:
+                        self.move(x-i, y, direction)
 
         elif direction == "right":
             i = 1
@@ -236,11 +269,14 @@ class Board():
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x + i - 1, y, ball)
-            if self.is_ball(x + i, y) and self.get_element(x + i - 1, y) >= self.get_element(x + i, y):
-                if self.can_exit(x+i, y, direction):
-                    self.delete_ball(x + i, y)
-                else:
-                    self.move(x+i, y, direction)
+            if self.is_frozen(x + i, y):
+                self.unfreeze(x + i, y)
+            else:
+                if self.is_ball(x + i, y) and self.get_element(x + i - 1, y) >= self.get_element(x + i, y):
+                    if self.can_exit(x+i, y, direction):
+                        self.delete_ball(x + i, y)
+                    else:
+                        self.move(x+i, y, direction)
 
     def possible_moves(self):
         """ Construit le nombre de mouvements possibles """
