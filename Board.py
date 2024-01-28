@@ -1,10 +1,10 @@
 from configparser import ConfigParser
 
-# constants
 
 class Board():
     """ Représentation du tableau du jeu Fling """
-    def __init__(self, lines = 8, columns = 7):
+
+    def __init__(self, lines=8, columns=7):
         """ Constructeur de la classe Tableau """
         constants = ConfigParser()
         constants.read("constants.ini")
@@ -18,6 +18,7 @@ class Board():
         self.BROKEN = constants.getint("Board", "BROKEN")
         self.WALL = constants.getint("Board", "WALL")
         self.BREAKABLE = constants.getint("Board", "BREAKABLE")
+        self.BOULDER = constants.getint("Board", "BOULDER")
 
         self.lines = lines
         self.columns = columns
@@ -49,6 +50,8 @@ class Board():
                         my_string += "X "
                     case self.BROKEN:
                         my_string += "x "
+                    case self.BOULDER:
+                        my_string += "d "
             my_string += "\n"
         return my_string
 
@@ -68,9 +71,9 @@ class Board():
         id_tmp = id
         for i in range(self.lines):
             for j in range(self.columns):
-                self.board[i][j] = id_tmp[i*self.columns + j]
+                self.board[i][j] = id_tmp[i * self.columns + j]
 
-    def add_ball(self, x, y, type = None):
+    def add_ball(self, x, y, type=None):
         type_n = type
         if type is None:
             type_n = self.BALL
@@ -122,6 +125,8 @@ class Board():
                             self.board[i][j] = self.HOLE
                         case "x":
                             self.board[i][j] = self.BROKEN
+                        case "d":
+                            self.board[i][j] = self.BOULDER
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
@@ -144,8 +149,9 @@ class Board():
         """ Vérifie si une bille est présente à la position x, y """
         if (self.is_in_board(x, y) and
                 (self.get_element(x, y) == self.BALL
-                or self.get_element(x, y) == self.BABYBALL
-                or self.get_element(x, y) == self.BIGBALL)):
+                 or self.get_element(x, y) == self.BABYBALL
+                 or self.get_element(x, y) == self.BIGBALL
+                 or self.get_element(x, y) == self.BOULDER)):
             return True
         return False
 
@@ -157,7 +163,8 @@ class Board():
 
     def is_frozen(self, x, y):
         """ Vérifie si une bille est gelée à la position x, y """
-        if self.is_in_board(x, y) and (self.get_element(x, y) == self.FROZEN or self.get_element(x, y) == self.DOUBLEFROZEN):
+        if self.is_in_board(x, y) and (
+                self.get_element(x, y) == self.FROZEN or self.get_element(x, y) == self.DOUBLEFROZEN):
             return True
         return False
 
@@ -170,14 +177,14 @@ class Board():
                 self.board[y - 1][x - 1] = self.FROZEN
 
     def is_obstacle(self, x, y):
-        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLE
+        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLE or self.get_element(x, y) == self.BOULDER
 
     def can_be_thrown(self, x, y, direction=""):
         """ Vérifie si la bille peut être lancée """
         """ c'est à dire si il y a pas une bille dans la direction """
         """ a au moins 2 cases de distance """
         """ et qu'elle ne sortira pas du tableau """
-        if (not self.is_ball(x, y)) or self.get_element(x, y) == self.BABYBALL:
+        if not self.is_ball(x, y):
             return False
         if direction == "up":
             if y > 2:
@@ -228,6 +235,13 @@ class Board():
                         return True
         return False
 
+    def can_be_played(self, x, y, direction=""):
+        if (not self.is_ball(x, y) or
+                self.get_element(x, y) == self.BABYBALL or
+                self.get_element(x, y) == self.BOULDER):
+            return False
+        return self.can_be_thrown(x, y, direction)
+
     def can_exit(self, x, y, direction=""):
         """ Vérifie si la bille peut sortir du tableau """
         if not self.is_ball(x, y):
@@ -239,7 +253,7 @@ class Board():
                 if self.is_obstacle(x, i):
                     return False
         elif direction == "down":
-            for i in range(y+1, self.lines + 1):
+            for i in range(y + 1, self.lines + 1):
                 if self.get_element(x, i) == self.HOLE:
                     return True
                 if self.is_obstacle(x, i):
@@ -251,12 +265,22 @@ class Board():
                 if self.is_obstacle(i, y):
                     return False
         elif direction == "right":
-            for i in range(x+1, self.columns + 1):
+            for i in range(x + 1, self.columns + 1):
                 if self.get_element(i, y) == self.HOLE:
                     return True
                 if self.is_obstacle(i, y):
                     return False
         return True
+
+    def compare_size(self, element1, element2):
+        """ Compare la taille de deux billes """
+        weights = {
+            self.BALL: 1,
+            self.BABYBALL: 0,
+            self.BIGBALL: 2,
+            self.BOULDER: 1
+        }
+        return weights[element1] >= weights[element2]
 
     def move(self, x, y, direction=""):
         ball = self.get_element(x, y)
@@ -274,7 +298,7 @@ class Board():
             elif self.get_element(x, y - i) == self.BREAKABLE:
                 self.set_element(x, y - i, self.BROKEN)
             else:
-                if self.is_ball(x, y - i) and self.get_element(x, y - i + 1) >= self.get_element(x, y - i):
+                if self.is_ball(x, y - i) and self.compare_size(self.get_element(x, y - i + 1), self.get_element(x, y - i)):
                     if self.can_exit(x, y - i, direction):
                         self.delete_ball(x, y - i)
                     else:
@@ -291,7 +315,7 @@ class Board():
             elif self.get_element(x, y + i) == self.BREAKABLE:
                 self.set_element(x, y + i, self.BROKEN)
             else:
-                if self.is_ball(x, y + i) and self.get_element(x, y + i - 1) >= self.get_element(x, y + i):
+                if self.is_ball(x, y + i) and self.compare_size(self.get_element(x, y + i - 1), self.get_element(x, y + i)):
                     if self.can_exit(x, y + i, direction):
                         self.delete_ball(x, y + i)
                     else:
@@ -308,11 +332,11 @@ class Board():
             elif self.get_element(x - i, y) == self.BREAKABLE:
                 self.set_element(x - i, y, self.BROKEN)
             else:
-                if self.is_ball(x - i, y) and self.get_element(x - i + 1, y) >= self.get_element(x - i, y):
-                    if self.can_exit(x-i, y, direction):
+                if self.is_ball(x - i, y) and self.compare_size(self.get_element(x - i + 1, y), self.get_element(x - i, y)):
+                    if self.can_exit(x - i, y, direction):
                         self.delete_ball(x - i, y)
                     else:
-                        self.move(x-i, y, direction)
+                        self.move(x - i, y, direction)
 
         elif direction == "right":
             i = 1
@@ -325,24 +349,24 @@ class Board():
             elif self.get_element(x + i, y) == self.BREAKABLE:
                 self.set_element(x + i, y, self.BROKEN)
             else:
-                if self.is_ball(x + i, y) and self.get_element(x + i - 1, y) >= self.get_element(x + i, y):
-                    if self.can_exit(x+i, y, direction):
+                if self.is_ball(x + i, y) and self.compare_size(self.get_element(x + i - 1, y), self.get_element(x + i, y)):
+                    if self.can_exit(x + i, y, direction):
                         self.delete_ball(x + i, y)
                     else:
-                        self.move(x+i, y, direction)
+                        self.move(x + i, y, direction)
 
     def possible_moves(self):
         """ Construit le nombre de mouvements possibles """
         moves = []
         for i in range(1, self.lines + 1):
             for j in range(1, self.columns + 1):
-                if self.can_be_thrown(j, i, "up"):
+                if self.can_be_played(j, i, "up"):
                     moves.append((j, i, "up"))
-                if self.can_be_thrown(j, i, "down"):
+                if self.can_be_played(j, i, "down"):
                     moves.append((j, i, "down"))
-                if self.can_be_thrown(j, i, "left"):
+                if self.can_be_played(j, i, "left"):
                     moves.append((j, i, "left"))
-                if self.can_be_thrown(j, i, "right"):
+                if self.can_be_played(j, i, "right"):
                     moves.append((j, i, "right"))
         return moves
 
