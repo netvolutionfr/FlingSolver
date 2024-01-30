@@ -19,6 +19,8 @@ class Board():
         self.WALL = constants.getint("Board", "WALL")
         self.BREAKABLE = constants.getint("Board", "BREAKABLE")
         self.BOULDER = constants.getint("Board", "BOULDER")
+        self.SHRINKER = constants.getint("Board", "SHRINKER")
+        self.GROWER = constants.getint("Board", "GROWER")
 
         self.lines = lines
         self.columns = columns
@@ -52,6 +54,10 @@ class Board():
                         my_string += "x "
                     case self.BOULDER:
                         my_string += "d "
+                    case self.SHRINKER:
+                        my_string += "s "
+                    case self.GROWER:
+                        my_string += "g "
             my_string += "\n"
         return my_string
 
@@ -127,6 +133,10 @@ class Board():
                             self.board[i][j] = self.BROKEN
                         case "d":
                             self.board[i][j] = self.BOULDER
+                        case "s":
+                            self.board[i][j] = self.SHRINKER
+                        case "g":
+                            self.board[i][j] = self.GROWER
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
@@ -172,9 +182,28 @@ class Board():
         """ Décongèle une bille à la position x, y """
         if self.is_frozen(x, y):
             if self.get_element(x, y) == self.FROZEN:
-                self.board[y - 1][x - 1] = self.BALL
+                self.set_element(x, y, self.BALL)
             elif self.get_element(x, y) == self.DOUBLEFROZEN:
-                self.board[y - 1][x - 1] = self.FROZEN
+                self.set_element(x, y, self.FROZEN)
+
+    def change_ball_size(self, ball, transformation):
+        """ Change la taille de la bille """
+        """ Change l'état de la bille à la position x, y """
+        """ Décongèle une bille à la position x, y """
+        if transformation == "shrink":
+            if ball == self.BALL:
+                return self.BABYBALL
+            elif ball == self.BIGBALL:
+                return self.BALL
+            else:
+                return ball
+        elif transformation == "grow":
+            if ball == self.BALL:
+                return self.BIGBALL
+            elif ball == self.BABYBALL:
+                return self.BALL
+            else:
+                return ball
 
     def is_obstacle(self, x, y):
         return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLE or self.get_element(x, y) == self.BOULDER
@@ -290,6 +319,12 @@ class Board():
         if direction == "up":
             i = 1
             while not self.is_obstacle(x, y - i):
+                if self.get_element(x, y - i) == self.SHRINKER:
+                    ball = self.change_ball_size(ball, "shrink")
+                    self.set_element(x, y - i, self.EMPTY)
+                elif self.get_element(x, y - i) == self.GROWER:
+                    ball = self.change_ball_size(ball, "grow")
+                    self.set_element(x, y - i, self.EMPTY)
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x, y - i + 1, ball)
@@ -307,6 +342,12 @@ class Board():
         elif direction == "down":
             i = 1
             while not self.is_obstacle(x, y + i):
+                if self.get_element(x, y + i) == self.SHRINKER:
+                    ball = self.change_ball_size(ball, "shrink")
+                    self.set_element(x, y + i, self.EMPTY)
+                elif self.get_element(x, y + i) == self.GROWER:
+                    ball = self.change_ball_size(ball, "grow")
+                    self.set_element(x, y + i, self.EMPTY)
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x, y + i - 1, ball)
@@ -324,6 +365,12 @@ class Board():
         elif direction == "left":
             i = 1
             while not self.is_obstacle(x - i, y):
+                if self.get_element(x - i, y) == self.SHRINKER:
+                    ball = self.change_ball_size(ball, "shrink")
+                    self.set_element(x - i, y, self.EMPTY)
+                elif self.get_element(x - i, y) == self.GROWER:
+                    ball = self.change_ball_size(ball, "grow")
+                    self.set_element(x - i, y, self.EMPTY)
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x - i + 1, y, ball)
@@ -341,6 +388,12 @@ class Board():
         elif direction == "right":
             i = 1
             while not self.is_obstacle(x + i, y):
+                if self.get_element(x + i, y) == self.SHRINKER:
+                    ball = self.change_ball_size(ball, "shrink")
+                    self.set_element(x + i, y, self.EMPTY)
+                elif self.get_element(x + i, y) == self.GROWER:
+                    ball = self.change_ball_size(ball, "grow")
+                    self.set_element(x + i, y, self.EMPTY)
                 i += 1
             self.delete_ball(x, y)
             self.add_ball(x + i - 1, y, ball)
