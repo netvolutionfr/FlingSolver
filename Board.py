@@ -21,6 +21,11 @@ class Board():
         self.BOULDER = constants.getint("Board", "BOULDER")
         self.SHRINKER = constants.getint("Board", "SHRINKER")
         self.GROWER = constants.getint("Board", "GROWER")
+        self.SANDTRAP = constants.getint("Board", "SANDTRAP")
+        self.TRAPPEDBABYBALL = constants.getint("Board", "TRAPPEDBABYBALL")
+        self.TRAPPEDBALL = constants.getint("Board", "TRAPPEDBALL")
+        self.TRAPPEDBIGBALL = constants.getint("Board", "TRAPPEDBIGBALL")
+        self.TRAPPEDBOULDER = constants.getint("Board", "TRAPPEDBOULDER")
 
         self.lines = lines
         self.columns = columns
@@ -58,6 +63,16 @@ class Board():
                         my_string += "s "
                     case self.GROWER:
                         my_string += "g "
+                    case self.SANDTRAP:
+                        my_string += "S "
+                    case self.TRAPPEDBABYBALL:
+                        my_string += "So"
+                    case self.TRAPPEDBALL:
+                        my_string += "SO"
+                    case self.TRAPPEDBIGBALL:
+                        my_string += "SB"
+                    case self.TRAPPEDBOULDER:
+                        my_string += "Sd"
             my_string += "\n"
         return my_string
 
@@ -68,7 +83,7 @@ class Board():
         id = ""
         for i in range(self.lines):
             for j in range(self.columns):
-                id += str(self.board[i][j])
+                id += chr(self.board[i][j] + 48)
         return id
 
     def set_id(self, id):
@@ -77,7 +92,8 @@ class Board():
         id_tmp = id
         for i in range(self.lines):
             for j in range(self.columns):
-                self.board[i][j] = id_tmp[i * self.columns + j]
+                char = id_tmp[i * self.columns + j]
+                self.board[i][j] = ord(char) - 48
 
     def add_ball(self, x, y, type=None):
         type_n = type
@@ -137,13 +153,22 @@ class Board():
                             self.board[i][j] = self.SHRINKER
                         case "g":
                             self.board[i][j] = self.GROWER
+                        case "S":
+                            self.board[i][j] = self.SANDTRAP
 
     def count_balls(self):
         """ Compte le nombre de billes dans le tableau """
         nb_balls = 0
         for i in range(self.lines):
             for j in range(self.columns):
-                if self.board[i][j] == self.BALL or self.board[i][j] == self.BABYBALL or self.board[i][j] == self.BIGBALL or self.board[i][j] == self.FROZEN or self.board[i][j] == self.DOUBLEFROZEN:
+                if (self.board[i][j] == self.BALL or
+                        self.board[i][j] == self.BABYBALL or
+                        self.board[i][j] == self.BIGBALL or
+                        self.board[i][j] == self.TRAPPEDBABYBALL or
+                        self.board[i][j] == self.TRAPPEDBALL or
+                        self.board[i][j] == self.TRAPPEDBIGBALL or
+                        self.board[i][j] == self.FROZEN or
+                        self.board[i][j] == self.DOUBLEFROZEN):
                     nb_balls += 1
         return nb_balls
 
@@ -161,7 +186,11 @@ class Board():
                 (self.get_element(x, y) == self.BALL
                  or self.get_element(x, y) == self.BABYBALL
                  or self.get_element(x, y) == self.BIGBALL
-                 or self.get_element(x, y) == self.BOULDER)):
+                 or self.get_element(x, y) == self.BOULDER
+                 or self.get_element(x, y) == self.TRAPPEDBABYBALL
+                 or self.get_element(x, y) == self.TRAPPEDBALL
+                 or self.get_element(x, y) == self.TRAPPEDBIGBALL
+                 or self.get_element(x, y) == self.TRAPPEDBOULDER)):
             return True
         return False
 
@@ -206,7 +235,25 @@ class Board():
                 return ball
 
     def is_obstacle(self, x, y):
-        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLEWALL or self.get_element(x, y) == self.BOULDER
+        return (self.is_ball(x, y) or
+                self.is_wall(x, y) or
+                self.is_frozen(x, y) or
+                self.get_element(x, y) == self.BREAKABLEWALL or
+                self.get_element(x, y) == self.BOULDER)
+
+    def is_trapped(self, x, y):
+        """ Vérifie si une bille est piégée dans un bac à sable """
+        return (self.get_element(x, y) == self.TRAPPEDBABYBALL or
+                self.get_element(x, y) == self.TRAPPEDBALL or
+                self.get_element(x, y) == self.TRAPPEDBIGBALL or
+                self.get_element(x, y) == self.TRAPPEDBOULDER)
+
+    def is_trapped_state(self, ball):
+        """ Vérifie si une bille est dans un état piégé """
+        return (ball == self.TRAPPEDBABYBALL or
+                ball == self.TRAPPEDBALL or
+                ball == self.TRAPPEDBIGBALL or
+                ball == self.TRAPPEDBOULDER)
 
     def can_be_thrown(self, x, y, direction=""):
         """ Vérifie si la bille peut être lancée """
@@ -219,11 +266,15 @@ class Board():
             if y > 2:
                 if self.is_obstacle(x, y - 1):
                     return False
+                if self.get_element(x, y - 1) == self.SANDTRAP:
+                    return True
                 if self.get_element(x, y - 1) == self.HOLE:
                     return False
                 for i in range(2, y):
                     if self.get_element(x, y - i) == self.HOLE:
                         return False
+                    if self.get_element(x, y - i) == self.SANDTRAP:
+                        return True
                     if self.is_obstacle(x, y - i):
                         return True
 
@@ -231,11 +282,15 @@ class Board():
             if y < self.lines - 1:
                 if self.is_obstacle(x, y + 1):
                     return False
+                if self.get_element(x, y + 1) == self.SANDTRAP:
+                    return True
                 if self.get_element(x, y + 1) == self.HOLE:
                     return False
                 for i in range(2, self.lines - y + 1):
                     if self.get_element(x, y + i) == self.HOLE:
                         return False
+                    if self.get_element(x, y + i) == self.SANDTRAP:
+                        return True
                     if self.is_obstacle(x, y + i):
                         return True
 
@@ -243,11 +298,15 @@ class Board():
             if x > 2:
                 if self.is_obstacle(x - 1, y):
                     return False
+                if self.get_element(x - 1, y) == self.SANDTRAP:
+                    return True
                 if self.get_element(x - 1, y) == self.HOLE:
                     return False
                 for i in range(2, x):
                     if self.get_element(x - i, y) == self.HOLE:
                         return False
+                    if self.get_element(x - i, y) == self.SANDTRAP:
+                        return True
                     if self.is_obstacle(x - i, y):
                         return True
 
@@ -255,11 +314,15 @@ class Board():
             if x < self.columns - 1:
                 if self.is_obstacle(x + 1, y):
                     return False
+                if self.get_element(x + 1, y) == self.SANDTRAP:
+                    return True
                 if self.get_element(x + 1, y) == self.HOLE:
                     return False
                 for i in range(2, self.columns - x + 1):
                     if self.get_element(x + i, y) == self.HOLE:
                         return False
+                    if self.get_element(x + i, y) == self.SANDTRAP:
+                        return True
                     if self.is_obstacle(x + i, y):
                         return True
         return False
@@ -267,7 +330,8 @@ class Board():
     def can_be_played(self, x, y, direction=""):
         if (not self.is_ball(x, y) or
                 self.get_element(x, y) == self.BABYBALL or
-                self.get_element(x, y) == self.BOULDER):
+                self.get_element(x, y) == self.BOULDER or
+                self.is_trapped(x, y)):
             return False
         return self.can_be_thrown(x, y, direction)
 
@@ -279,25 +343,25 @@ class Board():
             for i in range(1, y):
                 if self.get_element(x, i) == self.HOLE:
                     return True
-                if self.is_obstacle(x, i):
+                if self.is_obstacle(x, i) or self.get_element(x, i) == self.SANDTRAP:
                     return False
         elif direction == "down":
             for i in range(y + 1, self.lines + 1):
                 if self.get_element(x, i) == self.HOLE:
                     return True
-                if self.is_obstacle(x, i):
+                if self.is_obstacle(x, i) or self.get_element(x, i) == self.SANDTRAP:
                     return False
         elif direction == "left":
             for i in range(1, x):
                 if self.get_element(i, y) == self.HOLE:
                     return True
-                if self.is_obstacle(i, y):
+                if self.is_obstacle(i, y) or self.get_element(i, y) == self.SANDTRAP:
                     return False
         elif direction == "right":
             for i in range(x + 1, self.columns + 1):
                 if self.get_element(i, y) == self.HOLE:
                     return True
-                if self.is_obstacle(i, y):
+                if self.is_obstacle(i, y) or self.get_element(i, y) == self.SANDTRAP:
                     return False
         return True
 
@@ -307,9 +371,66 @@ class Board():
             self.BALL: 1,
             self.BABYBALL: 0,
             self.BIGBALL: 2,
-            self.BOULDER: 1
+            self.BOULDER: 1,
+            self.TRAPPEDBABYBALL: 0,
+            self.TRAPPEDBALL: 1,
+            self.TRAPPEDBIGBALL: 2,
+            self.TRAPPEDBOULDER: 1
         }
         return weights[element1] >= weights[element2]
+
+    def trap_ball(self, ball):
+        """ Piège une bille dans un bac à sable """
+        if ball == self.BALL:
+            return self.TRAPPEDBALL
+        elif ball == self.BABYBALL:
+            return self.TRAPPEDBABYBALL
+        elif ball == self.BIGBALL:
+            return self.TRAPPEDBIGBALL
+        elif ball == self.BOULDER:
+            return self.TRAPPEDBOULDER
+
+    def eject_ball(self, x, y, direction):
+        """ Éjecte une bille """
+        if self.can_exit(x, y, direction):
+            if direction == "up":
+                y1 = y
+                while y1 > 0:
+                    if self.get_element(x, y1) == self.HOLE:
+                        self.delete_ball(x, y)
+                        return
+                    if self.get_element(x, y1) == self.CRACKEDTILE:
+                        self.set_element(x, y1, self.HOLE)
+                    y1 -= 1
+            elif direction == "down":
+                y1 = y
+                while y1 <= self.lines:
+                    if self.get_element(x, y1) == self.HOLE:
+                        self.delete_ball(x, y)
+                        return
+                    if self.get_element(x, y1) == self.CRACKEDTILE:
+                        self.set_element(x, y1, self.HOLE)
+                    y1 += 1
+            elif direction == "left":
+                x1 = x
+                while x1 > 0:
+                    if self.get_element(x1, y) == self.HOLE:
+                        self.delete_ball(x, y)
+                        return
+                    if self.get_element(x1, y) == self.CRACKEDTILE:
+                        self.set_element(x1, y, self.HOLE)
+                    x1 -= 1
+            elif direction == "right":
+                x1 = x
+                while x1 <= self.columns:
+                    if self.get_element(x1, y) == self.HOLE:
+                        self.delete_ball(x, y)
+                        return
+                    if self.get_element(x1, y) == self.CRACKEDTILE:
+                        self.set_element(x1, y, self.HOLE)
+                    x1 += 1
+            self.delete_ball(x, y)
+            return
 
     def move(self, x, y, direction=""):
         ball = self.get_element(x, y)
@@ -318,7 +439,7 @@ class Board():
             return
         if direction == "up":
             i = 1
-            while not self.is_obstacle(x, y - i):
+            while not self.is_trapped_state(ball) and not self.is_obstacle(x, y - i):
                 if self.get_element(x, y - i) == self.SHRINKER:
                     ball = self.change_ball_size(ball, "shrink")
                     self.set_element(x, y - i, self.EMPTY)
@@ -327,8 +448,15 @@ class Board():
                     self.set_element(x, y - i, self.EMPTY)
                 elif self.get_element(x, y - i) == self.CRACKEDTILE:
                     self.set_element(x, y - i, self.HOLE)
+                elif self.get_element(x, y - i) == self.SANDTRAP:
+                    ball = self.trap_ball(ball)
+                    i += 1
+                    break
                 i += 1
-            self.delete_ball(x, y)
+            if self.is_trapped(x, y):
+                self.set_element(x, y, self.SANDTRAP)
+            else:
+                self.delete_ball(x, y)
             if self.get_element(x, y - i + 1) != self.HOLE:
                 self.add_ball(x, y - i + 1, ball)
             if self.is_frozen(x, y - i):
@@ -338,13 +466,16 @@ class Board():
             else:
                 if self.is_ball(x, y - i) and self.compare_size(ball, self.get_element(x, y - i)):
                     if self.can_exit(x, y - i, direction):
-                        self.delete_ball(x, y - i)
+                        if self.is_trapped(x, y - i):
+                            self.set_element(x, y - i, self.SANDTRAP)
+                        else:
+                            self.eject_ball(x, y - i, direction)
                     else:
                         self.move(x, y - i, direction)
 
         elif direction == "down":
             i = 1
-            while not self.is_obstacle(x, y + i):
+            while not self.is_trapped_state(ball) and not self.is_obstacle(x, y + i):
                 if self.get_element(x, y + i) == self.SHRINKER:
                     ball = self.change_ball_size(ball, "shrink")
                     self.set_element(x, y + i, self.EMPTY)
@@ -353,24 +484,33 @@ class Board():
                     self.set_element(x, y + i, self.EMPTY)
                 elif self.get_element(x, y + i) == self.CRACKEDTILE:
                     self.set_element(x, y + i, self.HOLE)
+                elif self.get_element(x, y + i) == self.SANDTRAP:
+                    ball = self.trap_ball(ball)
                 i += 1
-            self.delete_ball(x, y)
+            if self.is_trapped(x, y):
+                self.set_element(x, y, self.SANDTRAP)
+            else:
+                self.delete_ball(x, y)
             if self.get_element(x, y + i - 1) != self.HOLE:
                 self.add_ball(x, y + i - 1, ball)
-            if self.is_frozen(x, y + i):
-                self.unfreeze(x, y + i)
-            elif self.get_element(x, y + i) == self.BREAKABLEWALL:
-                self.set_element(x, y + i, self.EMPTY)
-            else:
-                if self.is_ball(x, y + i) and self.compare_size(ball, self.get_element(x, y + i)):
-                    if self.can_exit(x, y + i, direction):
-                        self.delete_ball(x, y + i)
-                    else:
-                        self.move(x, y + i, direction)
+            if not self.is_trapped_state(ball):
+                if self.is_frozen(x, y + i):
+                    self.unfreeze(x, y + i)
+                elif self.get_element(x, y + i) == self.BREAKABLEWALL:
+                    self.set_element(x, y + i, self.EMPTY)
+                else:
+                    if self.is_ball(x, y + i) and self.compare_size(ball, self.get_element(x, y + i)):
+                        if self.can_exit(x, y + i, direction):
+                            if self.is_trapped(x, y + i):
+                                self.set_element(x, y + i, self.SANDTRAP)
+                            else:
+                                self.eject_ball(x, y + i, direction)
+                        else:
+                            self.move(x, y + i, direction)
 
         elif direction == "left":
             i = 1
-            while not self.is_obstacle(x - i, y):
+            while not self.is_trapped_state(ball) and not self.is_obstacle(x - i, y):
                 if self.get_element(x - i, y) == self.SHRINKER:
                     ball = self.change_ball_size(ball, "shrink")
                     self.set_element(x - i, y, self.EMPTY)
@@ -379,24 +519,33 @@ class Board():
                     self.set_element(x - i, y, self.EMPTY)
                 elif self.get_element(x - i, y) == self.CRACKEDTILE:
                     self.set_element(x - i, y, self.HOLE)
+                elif self.get_element(x - i, y) == self.SANDTRAP:
+                    ball = self.trap_ball(ball)
                 i += 1
-            self.delete_ball(x, y)
+            if self.is_trapped(x, y):
+                self.set_element(x, y, self.SANDTRAP)
+            else:
+                self.delete_ball(x, y)
             if self.get_element(x - i + 1, y) != self.HOLE:
                 self.add_ball(x - i + 1, y, ball)
-            if self.is_frozen(x - i, y):
-                self.unfreeze(x - i, y)
-            elif self.get_element(x - i, y) == self.BREAKABLEWALL:
-                self.set_element(x - i, y, self.EMPTY)
-            else:
-                if self.is_ball(x - i, y) and self.compare_size(ball, self.get_element(x - i, y)):
-                    if self.can_exit(x - i, y, direction):
-                        self.delete_ball(x - i, y)
-                    else:
-                        self.move(x - i, y, direction)
+            if not self.is_trapped_state(ball):
+                if self.is_frozen(x - i, y):
+                    self.unfreeze(x - i, y)
+                elif self.get_element(x - i, y) == self.BREAKABLEWALL:
+                    self.set_element(x - i, y, self.EMPTY)
+                else:
+                    if self.is_ball(x - i, y) and self.compare_size(ball, self.get_element(x - i, y)):
+                        if self.can_exit(x - i, y, direction):
+                            if self.is_trapped(x - i, y):
+                                self.set_element(x - i, y, self.SANDTRAP)
+                            else:
+                                self.eject_ball(x - i, y, direction)
+                        else:
+                            self.move(x - i, y, direction)
 
         elif direction == "right":
             i = 1
-            while not self.is_obstacle(x + i, y):
+            while not self.is_trapped_state(ball) and not self.is_obstacle(x + i, y):
                 if self.get_element(x + i, y) == self.SHRINKER:
                     ball = self.change_ball_size(ball, "shrink")
                     self.set_element(x + i, y, self.EMPTY)
@@ -405,20 +554,31 @@ class Board():
                     self.set_element(x + i, y, self.EMPTY)
                 elif self.get_element(x + i, y) == self.CRACKEDTILE:
                     self.set_element(x + i, y, self.HOLE)
+                elif self.get_element(x + i, y) == self.SANDTRAP:
+                    ball = self.trap_ball(ball)
+                    i += 1
+                    break
                 i += 1
-            self.delete_ball(x, y)
+            if self.is_trapped(x, y):
+                self.set_element(x, y, self.SANDTRAP)
+            else:
+                self.delete_ball(x, y)
             if self.get_element(x + i - 1, y) != self.HOLE:
                 self.add_ball(x + i - 1, y, ball)
-            if self.is_frozen(x + i, y):
-                self.unfreeze(x + i, y)
-            elif self.get_element(x + i, y) == self.BREAKABLEWALL:
-                self.set_element(x + i, y, self.EMPTY)
-            else:
-                if self.is_ball(x + i, y) and self.compare_size(ball, self.get_element(x + i, y)):
-                    if self.can_exit(x + i, y, direction):
-                        self.delete_ball(x + i, y)
-                    else:
-                        self.move(x + i, y, direction)
+            if not self.is_trapped_state(ball):
+                if self.is_frozen(x + i, y):
+                    self.unfreeze(x + i, y)
+                elif self.get_element(x + i, y) == self.BREAKABLEWALL:
+                    self.set_element(x + i, y, self.EMPTY)
+                else:
+                    if self.is_ball(x + i, y) and self.compare_size(ball, self.get_element(x + i, y)):
+                        if self.can_exit(x + i, y, direction):
+                            if self.is_trapped(x + i, y):
+                                self.set_element(x + i, y, self.SANDTRAP)
+                            else:
+                                self.eject_ball(x + i, y, direction)
+                        else:
+                            self.move(x + i, y, direction)
 
     def possible_moves(self):
         """ Construit le nombre de mouvements possibles """
