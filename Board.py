@@ -15,9 +15,9 @@ class Board():
         self.FROZEN = constants.getint("Board", "FROZEN")
         self.DOUBLEFROZEN = constants.getint("Board", "DOUBLEFROZEN")
         self.HOLE = constants.getint("Board", "HOLE")
-        self.BROKEN = constants.getint("Board", "BROKEN")
+        self.CRACKEDTILE = constants.getint("Board", "CRACKEDTILE")
         self.WALL = constants.getint("Board", "WALL")
-        self.BREAKABLE = constants.getint("Board", "BREAKABLE")
+        self.BREAKABLEWALL = constants.getint("Board", "BREAKABLEWALL")
         self.BOULDER = constants.getint("Board", "BOULDER")
         self.SHRINKER = constants.getint("Board", "SHRINKER")
         self.GROWER = constants.getint("Board", "GROWER")
@@ -38,7 +38,7 @@ class Board():
                         my_string += "O "
                     case self.WALL:
                         my_string += "W "
-                    case self.BREAKABLE:
+                    case self.BREAKABLEWALL:
                         my_string += "w "
                     case self.BABYBALL:
                         my_string += "o "
@@ -50,7 +50,7 @@ class Board():
                         my_string += "F "
                     case self.HOLE:
                         my_string += "X "
-                    case self.BROKEN:
+                    case self.CRACKEDTILE:
                         my_string += "x "
                     case self.BOULDER:
                         my_string += "d "
@@ -118,7 +118,7 @@ class Board():
                         case "W":
                             self.board[i][j] = self.WALL
                         case "w":
-                            self.board[i][j] = self.BREAKABLE
+                            self.board[i][j] = self.BREAKABLEWALL
                         case "b":
                             self.board[i][j] = self.BABYBALL
                         case "B":
@@ -130,7 +130,7 @@ class Board():
                         case "X":
                             self.board[i][j] = self.HOLE
                         case "x":
-                            self.board[i][j] = self.BROKEN
+                            self.board[i][j] = self.CRACKEDTILE
                         case "d":
                             self.board[i][j] = self.BOULDER
                         case "s":
@@ -206,7 +206,7 @@ class Board():
                 return ball
 
     def is_obstacle(self, x, y):
-        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLE or self.get_element(x, y) == self.BOULDER
+        return self.is_ball(x, y) or self.is_wall(x, y) or self.is_frozen(x, y) or self.get_element(x, y) == self.BREAKABLEWALL or self.get_element(x, y) == self.BOULDER
 
     def can_be_thrown(self, x, y, direction=""):
         """ Vérifie si la bille peut être lancée """
@@ -325,15 +325,18 @@ class Board():
                 elif self.get_element(x, y - i) == self.GROWER:
                     ball = self.change_ball_size(ball, "grow")
                     self.set_element(x, y - i, self.EMPTY)
+                elif self.get_element(x, y - i) == self.CRACKEDTILE:
+                    self.set_element(x, y - i, self.HOLE)
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x, y - i + 1, ball)
+            if self.get_element(x, y - i + 1) != self.HOLE:
+                self.add_ball(x, y - i + 1, ball)
             if self.is_frozen(x, y - i):
                 self.unfreeze(x, y - i)
-            elif self.get_element(x, y - i) == self.BREAKABLE:
-                self.set_element(x, y - i, self.BROKEN)
+            elif self.get_element(x, y - i) == self.BREAKABLEWALL:
+                self.set_element(x, y - i, self.EMPTY)
             else:
-                if self.is_ball(x, y - i) and self.compare_size(self.get_element(x, y - i + 1), self.get_element(x, y - i)):
+                if self.is_ball(x, y - i) and self.compare_size(ball, self.get_element(x, y - i)):
                     if self.can_exit(x, y - i, direction):
                         self.delete_ball(x, y - i)
                     else:
@@ -348,15 +351,18 @@ class Board():
                 elif self.get_element(x, y + i) == self.GROWER:
                     ball = self.change_ball_size(ball, "grow")
                     self.set_element(x, y + i, self.EMPTY)
+                elif self.get_element(x, y + i) == self.CRACKEDTILE:
+                    self.set_element(x, y + i, self.HOLE)
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x, y + i - 1, ball)
+            if self.get_element(x, y + i - 1) != self.HOLE:
+                self.add_ball(x, y + i - 1, ball)
             if self.is_frozen(x, y + i):
                 self.unfreeze(x, y + i)
-            elif self.get_element(x, y + i) == self.BREAKABLE:
-                self.set_element(x, y + i, self.BROKEN)
+            elif self.get_element(x, y + i) == self.BREAKABLEWALL:
+                self.set_element(x, y + i, self.EMPTY)
             else:
-                if self.is_ball(x, y + i) and self.compare_size(self.get_element(x, y + i - 1), self.get_element(x, y + i)):
+                if self.is_ball(x, y + i) and self.compare_size(ball, self.get_element(x, y + i)):
                     if self.can_exit(x, y + i, direction):
                         self.delete_ball(x, y + i)
                     else:
@@ -371,15 +377,18 @@ class Board():
                 elif self.get_element(x - i, y) == self.GROWER:
                     ball = self.change_ball_size(ball, "grow")
                     self.set_element(x - i, y, self.EMPTY)
+                elif self.get_element(x - i, y) == self.CRACKEDTILE:
+                    self.set_element(x - i, y, self.HOLE)
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x - i + 1, y, ball)
+            if self.get_element(x - i + 1, y) != self.HOLE:
+                self.add_ball(x - i + 1, y, ball)
             if self.is_frozen(x - i, y):
                 self.unfreeze(x - i, y)
-            elif self.get_element(x - i, y) == self.BREAKABLE:
-                self.set_element(x - i, y, self.BROKEN)
+            elif self.get_element(x - i, y) == self.BREAKABLEWALL:
+                self.set_element(x - i, y, self.EMPTY)
             else:
-                if self.is_ball(x - i, y) and self.compare_size(self.get_element(x - i + 1, y), self.get_element(x - i, y)):
+                if self.is_ball(x - i, y) and self.compare_size(ball, self.get_element(x - i, y)):
                     if self.can_exit(x - i, y, direction):
                         self.delete_ball(x - i, y)
                     else:
@@ -394,15 +403,18 @@ class Board():
                 elif self.get_element(x + i, y) == self.GROWER:
                     ball = self.change_ball_size(ball, "grow")
                     self.set_element(x + i, y, self.EMPTY)
+                elif self.get_element(x + i, y) == self.CRACKEDTILE:
+                    self.set_element(x + i, y, self.HOLE)
                 i += 1
             self.delete_ball(x, y)
-            self.add_ball(x + i - 1, y, ball)
+            if self.get_element(x + i - 1, y) != self.HOLE:
+                self.add_ball(x + i - 1, y, ball)
             if self.is_frozen(x + i, y):
                 self.unfreeze(x + i, y)
-            elif self.get_element(x + i, y) == self.BREAKABLE:
-                self.set_element(x + i, y, self.BROKEN)
+            elif self.get_element(x + i, y) == self.BREAKABLEWALL:
+                self.set_element(x + i, y, self.EMPTY)
             else:
-                if self.is_ball(x + i, y) and self.compare_size(self.get_element(x + i - 1, y), self.get_element(x + i, y)):
+                if self.is_ball(x + i, y) and self.compare_size(ball, self.get_element(x + i, y)):
                     if self.can_exit(x + i, y, direction):
                         self.delete_ball(x + i, y)
                     else:
