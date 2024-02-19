@@ -311,7 +311,7 @@ class Board():
                         i = 0
                     if self.get_element(x, y - i) == self.HOLE:
                         return False
-                    if self.get_element(x, y - i) == self.SANDTRAP:
+                    if y > i and self.get_element(x, y - i) == self.SANDTRAP:
                         return True
                     i += 1
 
@@ -332,7 +332,7 @@ class Board():
                         i = 0
                     if self.get_element(x, y + i) == self.HOLE:
                         return False
-                    if self.get_element(x, y + i) == self.SANDTRAP:
+                    if y + i <= self.lines and self.get_element(x, y + i) == self.SANDTRAP:
                         return True
                     i += 1
 
@@ -353,7 +353,7 @@ class Board():
                         i = 0
                     if self.get_element(x - i, y) == self.HOLE:
                         return False
-                    if self.get_element(x - i, y) == self.SANDTRAP:
+                    if x > i and self.get_element(x - i, y) == self.SANDTRAP:
                         return True
                     i += 1
 
@@ -374,7 +374,7 @@ class Board():
                         i = 0
                     if self.get_element(x + i, y) == self.HOLE:
                         return False
-                    if self.get_element(x + i, y) == self.SANDTRAP:
+                    if x + i < self.columns and self.get_element(x + i, y) == self.SANDTRAP:
                         return True
                     i += 1
         return False
